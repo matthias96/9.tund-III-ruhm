@@ -142,7 +142,7 @@
 	var_dump($file_array);
 	for($i= 0; $i < count($file_array); $i++){
 		
-		echo "<a href=''>".$target_dir.$file_array[$i]."'>".$file_array[$i]."</a>";
+		echo "<a href=''".$target_dir.$file_array[$i]."'>".$file_array[$i]."</a><br>";
 		
 	}
 ?>
