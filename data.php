@@ -1,76 +1,148 @@
 <?php
-   require_once("functions.php");
-   if(!isset($_SESSION["logged_in_user_id"])){
+	require_once("functions.php");
+	if(!isset($_SESSION["logged_in_user_id"])){
 		header("Location: login.php");
 		
+		// see  katkestab faili edasise lugemise
+		exit();
 	}
-	//kasutaja tahab välja logida
+	
 	if(isset($_GET["logout"])){
-		//addressireal on olemas muutuja logout
-		//kustutame kõik sessioonimuutujad
+		
 		session_destroy();
+		
 		header("Location: login.php");
 	}
-   $number_plate= $color= "";
-   $number_plate_error=$color_error= "";
-   if($_SERVER["REQUEST_METHOD"] == "POST") {
-
-   
-		if(isset($_POST["add_plate"])){
-
-			if ( empty($_POST["number_plate"])) {
-				$number_plate_error = "See väli on kohustuslik";
-			}else{
-        
-				$number_plate = cleanInput($_POST["number_plate"]);
-			}
-
-			if ( empty($_POST["color"]) ) {
-				$color_error = "See väli on kohustuslik";
-			}else{
-				$color = cleanInput($_POST["color"]);
-			}
-
-     
-			if($number_plate_error == "" && $color_error == ""){
-				echo "Salvestatud! Numbrimärk on ".$number_plate." ja värv on ".$color. ".";
-				$msg= createNumberPlate($number_plate, $color);
-				
-				if($msg !=""){
-					//õnnestus, teeme inputi väljad tühjaks
-					$number_plate="";
-					$color="";
-					
-					echo $msg;
-				}
-				
-			}
-		}		
-   
-	   
-	 
-	   
-	   
-   }
-   function cleanInput($data) {
-        $data = trim($data);
-        $data = stripslashes($data);
-        $data = htmlspecialchars($data);
-        return $data;
-    }
+	
+	//********************
+	// Faili üleslaadimine
+	//********************
+	
+	$target_dir = "profile_pics/";
+	$target_file = $target_dir.$_SESSION["logged_in_user_id"].".jpg";
+	if(isset($_POST["submit"])) {
+	// profile_pics/Koala.jpg
 	
 	
-   
- ?> 
- <p>Tere, <?=$_SESSION["logged_in_user_email"];?>
-	<a href="?logout=1"> Logi välja <a>
+	
+	$uploadOk = 1;
+	$imageFileType = pathinfo($target_file,PATHINFO_EXTENSION);
+	// Check if image file is a actual image or fake image
+	if(isset($_POST["submit"])) {
+		
+		$check = getimagesize($_FILES["fileToUpload"]["tmp_name"]);
+		
+		if($check !== false) {
+			echo "File is an image - " . $check["mime"] . ".";
+			$uploadOk = 1;
+		} else {
+			echo "File is not an image.";
+			$uploadOk = 0;
+		}
+	
+		// Check if file already exists
+		if (file_exists($target_file)) {
+			echo "Sorry, file already exists.";
+			$uploadOk = 0;
+		}
+		// Check file size - 500000 = ~500kB
+		if ($_FILES["fileToUpload"]["size"] > 1024000) {
+			echo "Sorry, your file is too large.";
+			$uploadOk = 0;
+		}
+		// Allow certain file formats
+		if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
+		&& $imageFileType != "gif" ) {
+			echo "Sorry, only JPG, JPEG, PNG & GIF files are allowed.";
+			$uploadOk = 0;
+		}
+		// Check if $uploadOk is set to 0 by an error
+		if ($uploadOk == 0) {
+			echo "Sorry, your file was not uploaded.";
+		// if everything is ok, try to upload file
+		} else {
+			if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
+				echo "The file ". basename( $_FILES["fileToUpload"]["name"]). " has been uploaded.";
+				
+				//see koht ab'i salvestamiseks
+				
+				header("Location: data.php");
+				
+			} else {
+				echo "Sorry, there was an error uploading your file.";
+			}
+		}
+		
+	} // endif post submit
+	
+	
+}
+
+	if(isset($_GET["delete"])){
+		
+		unlink($target_file);
+		
+		header("Location: data.php");
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+?>
+<?php if(isset($_SESSION["login_success_message"])): ?>
+	
+	<p style="color:green;" >
+		<?=$_SESSION["login_success_message"];?>
+	</p>
+
+<?php 
+	//kustutan selle sõnumi pärast esimest näitamist
+	unset($_SESSION["login_success_message"]);
+	
+	endif; ?>
+
+<p>
+	Tere, <?=$_SESSION["logged_in_user_email"];?> 
+	<a href="?logout=1"> Logi välja <a> 
 </p>
 
-<h2>Lisa autonumbrimärk </h2>
-<form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" method="post" >
-	<label for="number_plate">Auto numbrimärk</label><br>
-  	<input id="number_plate" name="number_plate" type="text"  value="<?php echo $number_plate; ?>"> <?php echo $number_plate_error; ?><br><br>
-	<label for="color">Värv</label><br>
-  	<input id="color" name="color" type="text"  value="<?php echo $color; ?>"> <?php echo $color_error; ?><br><br>
-  	<input type="submit" name="add_plate" value="Salvesta">
-  </form>	
+
+<h2>Profiilipilt</h2>
+
+<?php if (file_exists($target_file)): ?>
+
+<div style="
+	width: 200px;
+	height: 200px;
+	background-image: url(<?=$target_file;?>);
+	background-position: center center;
+	background-size: cover;"></div>
+
+	<a href="?delete=1">Delete profile pic</a>
+	
+<?php else: ?>	
+	
+	
+<form action="data.php" method="post" enctype="multipart/form-data">
+    Lae üles pilt (1MB ja png, jpg, gif)
+    <input type="file" name="fileToUpload" id="fileToUpload">
+    <input type="submit" value="Upload Image" name="submit">
+</form>
+
+<?php endif; ?>
+
+<?php
+
+	$file_array=scandir($target_dir);
+	var_dump($file_array);
+	for($i= 0; $i < count($file_array); $i++){
+		
+		echo "<a href=''>".$target_dir.$file_array[$i]."'>".$file_array[$i]."</a>";
+		
+	}
+?>
